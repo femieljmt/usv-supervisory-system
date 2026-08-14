@@ -1,0 +1,48 @@
+# Python virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables dan kredensial
+config/.env
+.env
+
+# Database runtime
+data/database/*.db
+data/database/*.sqlite
+data/database/*.sqlite3
+
+# Log runtime
+data/logs/*
+!data/logs/.gitkeep
+*.log
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+
+# Generated Mosquitto credentials/runtime
+mosquitto/passwd
+mosquitto/acl
+mosquitto/mosquitto-windows.conf
+mosquitto/data/*
+!mosquitto/data/.gitkeep
+mosquitto/log/*
+!mosquitto/log/.gitkeep
+
+# Database backups
+backups/
+data/database/backup/

@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local configuration / credentials
+config/.env
+.env
+*.pem
+*.key
+
+# Runtime data
+data/database/*.db
+data/database/*.sqlite
+data/database/*.sqlite3
+data/logs/*
+data/sessions/*
+*.log
+*.tlog
+
+# Keep optional directory placeholders
+!data/logs/.gitkeep
+!data/database/.gitkeep
+!data/sessions/.gitkeep
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

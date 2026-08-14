@@ -1,0 +1,22 @@
+# Example Mosquitto configuration for a Linux/Raspberry Pi ground server.
+# Adjust paths to match your installation.
+
+per_listener_settings true
+listener 1883 0.0.0.0
+allow_anonymous false
+
+password_file /etc/mosquitto/passwd
+acl_file /etc/mosquitto/acl
+
+persistence true
+persistence_location /var/lib/mosquitto/
+persistence_file mosquitto.db
+autosave_interval 60
+
+log_dest syslog
+log_type error
+log_type warning
+log_type notice
+
+max_inflight_messages 100
+max_queued_messages 10000

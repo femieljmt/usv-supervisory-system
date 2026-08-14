@@ -1,0 +1,33 @@
+# Python
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+
+# Secrets / local config
+**/config/.env
+**/.env
+**/*.pem
+**/*.key
+
+# Runtime databases and logs
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.log
+**/*.tlog
+**/data/sessions/**
+**/backups/**
+
+# Generated Mosquitto credentials
+**/mosquitto/passwd
+**/mosquitto/acl
+**/mosquitto/mosquitto-windows.conf
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

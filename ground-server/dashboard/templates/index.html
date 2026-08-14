@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>USV Supervisory Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">USV</div>
+        <div>
+          <strong>Supervisory</strong>
+          <span>Operation Dashboard</span>
+        </div>
+      </div>
+      <nav class="side-nav" aria-label="Navigasi dashboard">
+        <a href="#overview" class="active"><b>01</b> Overview</a>
+        <a href="#mission-map"><b>02</b> Mission & Track</a>
+        <a href="#state-timeline"><b>03</b> State Timeline</a>
+        <a href="#store-forward"><b>04</b> Store-and-Forward</a>
+        <a href="#delivery"><b>05</b> ACK & Delivery</a>
+        <a href="#supporting-monitoring"><b>06</b> Supporting Sensors</a>
+        <a href="#evaluation"><b>07</b> Evaluation</a>
+        <a href="#export"><b>08</b> Export Evidence</a>
+      </nav>
+      <div class="scope-note">
+        <span class="read-only-dot"></span>
+        <strong>Read-only monitoring</strong>
+        <p>Dashboard tidak mengirim perintah ke Pixhawk dan tidak mengubah data operasi.</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Raspberry Pi Lab · Supervisory Server</p>
+          <h1>USV Operation Monitoring</h1>
+          <p class="subtitle">Observasi state, link-loss, buffer, sinkronisasi, ACK, mission, dan continuity of operational information.</p>
+        </div>
+        <div class="control-cluster">
+          <label>Vehicle<select id="vehicleSelect" aria-label="Pilih vehicle"><option value="">Loading...</option></select></label>
+          <label class="session-control">Session<select id="sessionSelect" aria-label="Pilih session"><option value="">Loading...</option></select><small id="sessionSelectionMeta">Newest session is numbered [01]</small></label>
+          <span id="freshnessBadge" class="badge neutral">WAITING</span>
+        </div>
+      </header>
+
+      <div id="noticeBar" class="notice-bar hidden" role="status"></div>
+
+      <section id="overview" class="dashboard-section">
+        <div class="section-heading">
+          <div class="section-index">01</div>
+          <div><h2>Overview</h2><p>Kondisi terbaru dari session terpilih dan status kesegaran data.</p></div>
+        </div>
+
+        <div class="hero-grid">
+          <article class="panel state-panel">
+            <div class="panel-kicker">Supervisory State</div>
+            <div id="stateValue" class="state-value neutral">NO DATA</div>
+            <div id="stateContext" class="state-context">Menunggu telemetry.</div>
+            <div class="meta-stack">
+              <span id="vehicleMeta">Vehicle —</span>
+              <span id="sessionMeta">Session —</span>
+              <span id="lastUpdateMeta">Last telemetry —</span>
+            </div>
+          </article>
+
+          <article class="panel link-panel">
+            <div class="panel-title-row"><div><div class="panel-kicker">Communication</div><h3>Last Known Link Status</h3></div><span id="sourceBadge" class="source-badge">—</span></div>
+            <div class="link-grid">
+              <div><span>Pixhawk</span><strong id="apValue">—</strong><small id="apQualifier">No data</small></div>
+              <div><span>Internet</span><strong id="netValue">—</strong><small id="netQualifier">No data</small></div>
+              <div><span>MQTT</span><strong id="mqttValue">—</strong><small id="mqttQualifier">No data</small></div>
+              <div><span>Synchronization</span><strong id="syncValue">—</strong><small id="syncQualifier">No data</small></div>
+            </div>
+          </article>
+
+          <article class="panel evidence-panel">
+            <div class="panel-kicker">Data Delivery</div>
+            <div class="buffer-block"><span>Onboard Buffer</span><strong id="bufferValue">0</strong><small>records</small></div>
+            <div class="evidence-mini-grid">
+              <div><span>Unique Stored</span><strong id="storedValue">0</strong></div>
+              <div><span>ACK Sent</span><strong id="ackValue">0</strong></div>
+              <div><span>Replay</span><strong id="replayValue">0</strong></div>
+              <div><span>Duplicates</span><strong id="duplicateValue">0</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card"><span>Mode</span><strong id="modeValue">—</strong></article>
+          <article class="metric-card"><span>Arm</span><strong id="armedValue">—</strong></article>
+          <article class="metric-card"><span>Speed</span><strong id="speedValue">—</strong><small>m/s</small></article>
+          <article class="metric-card"><span>Heading</span><strong id="headingValue">—</strong><small>degree</small></article>
+          <article class="metric-card"><span>Battery</span><strong id="batteryValue">—</strong><small id="batteryPercentValue">—</small></article>
+          <article class="metric-card"><span>GPS</span><strong id="gpsValue">—</strong><small id="hdopValue">HDOP —</small></article>
+          <article class="metric-card"><span>Waypoint</span><strong id="waypointValue">—</strong><small id="distanceValue">Distance —</small></article>
+          <article class="metric-card"><span>Data Age</span><strong id="dataAgeValue">—</strong><small id="receivedValue">Received —</small></article>
+        </div>
+
+        <div class="two-column-grid overview-detail-grid">
+          <article class="panel compact-panel">
+            <div class="panel-title-row"><div><div class="panel-kicker">Data Freshness</div><h3>Live Interpretation</h3></div></div>
+            <div id="freshnessDetails" class="detail-list"></div>
+          </article>
+          <article class="panel compact-panel">
+            <div class="panel-title-row"><div><div class="panel-kicker">Sequence Integrity</div><h3>Session Continuity</h3></div></div>
+            <div id="sequenceDetails" class="detail-list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="mission-map" class="dashboard-section">
+        <div class="section-heading">
+          <div class="section-index">02</div>
+          <div><h2>Mission &amp; Live GPS Track</h2><p>Peta interaktif berdasarkan koordinat GPS, mission plan, lintasan aktual, dan state supervisory.</p></div>
+        </div>
+
+        <article class="panel map-panel real-map-panel">
+          <div class="panel-title-row map-title-row">
+            <div>
+              <div class="panel-kicker">Navigation</div>
+              <h3>Mission Plan &amp; Live GPS Track Map</h3>
+            </div>
+            <div class="map-toolbar" aria-label="Kontrol peta">
+              <button id="mapFitButton" type="button" class="map-tool-button">Fit Mission</button>
+              <button id="mapFitTrackButton" type="button" class="map-tool-button">Fit Track</button>
+              <button id="mapCenterButton" type="button" class="map-tool-button">Current Position</button>
+              <button id="mapFollowButton" type="button" class="map-tool-button active" aria-pressed="true">Follow ON</button>
+            </div>
+          </div>
+
+          <div class="track-mode-bar" aria-label="Pilihan tampilan track">
+            <div class="track-mode-buttons" role="group" aria-label="Track style">
+              <button type="button" class="track-mode-button active" data-track-mode="main" aria-pressed="true">Main Track</button>
+              <button type="button" class="track-mode-button" data-track-mode="recent" aria-pressed="false">Recent Window</button>
+              <button type="button" class="track-mode-button" data-track-mode="playback" aria-pressed="false">Playback</button>
+            </div>
+            <label id="recentLimitControl" class="track-limit-control hidden">Latest
+              <select id="trackLimitSelect" aria-label="Jumlah record track terbaru">
+                <option value="100">100 records</option>
+                <option value="500" selected>500 records</option>
+                <option value="1000">1000 records</option>
+              </select>
+            </label>
+            <span id="trackModeSummary" class="track-mode-summary">Main Track</span>
+          </div>
+
+          <div id="playbackControls" class="playback-controls hidden" aria-label="Kontrol playback track">
+            <div class="playback-button-row">
+              <button id="playbackPlayButton" type="button" class="map-tool-button">Play</button>
+              <button id="playbackResetButton" type="button" class="map-tool-button">Start</button>
+              <label>Speed
+                <select id="playbackSpeedSelect" aria-label="Kecepatan playback">
+                  <option value="1">×1</option>
+                  <option value="2">×2</option>
+                  <option value="5">×5</option>
+                </select>
+              </label>
+            </div>
+            <input id="playbackSlider" type="range" min="0" max="0" value="0" step="1" aria-label="Posisi playback dari record terlama ke terbaru">
+            <div id="playbackReadout" class="playback-readout">Playback data belum dimuat.</div>
+          </div>
+
+          <div class="map-layer-row">
+            <div class="map-legend" aria-label="Legenda peta">
+              <span><i class="legend-line mission"></i>Mission route</span>
+              <span><i class="legend-line actual"></i>NORMAL</span>
+              <span><i class="legend-line lost"></i>GCS_LOST</span>
+              <span><i class="legend-line recovery"></i>RECOVERY</span>
+              <span><i class="legend-line pixhawk"></i>PIXHAWK_LOST</span>
+              <span><i class="legend-line manual"></i>Latest MANUAL segment</span>
+              <span><i class="legend-line guided"></i>GUIDED target</span>
+            </div>
+            <div class="map-layer-toggles">
+              <label><input id="mapMissionToggle" type="checkbox" checked> Mission</label>
+              <label><input id="mapTrackToggle" type="checkbox" checked> Actual track</label>
+              <label><input id="mapManualToggle" type="checkbox" checked> Manual segment</label>
+              <label><input id="mapGuidedToggle" type="checkbox" checked> Guided target</label>
+              <span id="gpsQualityBadge" class="gps-quality-badge no-data">NO GPS DATA</span>
+            </div>
+          </div>
+
+          <div class="gps-map-shell">
+            <div id="gpsMap" class="gps-map" role="application" aria-label="Peta mission dan lintasan GPS USV"></div>
+            <div id="mapEmpty" class="map-empty-message">Belum ada koordinat GPS valid untuk session ini.</div>
+            <div class="map-zoom-control" aria-label="Kontrol zoom">
+              <button id="mapZoomIn" type="button" aria-label="Perbesar peta">+</button>
+              <button id="mapZoomOut" type="button" aria-label="Perkecil peta">−</button>
+            </div>
+          </div>
+
+          <div class="coordinate-strip map-coordinate-strip">
+            <span>Latitude <strong id="latValue">—</strong></span>
+            <span>Longitude <strong id="lonValue">—</strong></span>
+            <span>GPS Fix <strong id="mapGpsFixValue">—</strong></span>
+            <span>HDOP <strong id="mapHdopValue">—</strong></span>
+            <span>Position <strong id="positionQualifier">—</strong></span>
+            <span>Valid Track <strong id="mapTrackCountValue">0</strong></span>
+            <span>Mode <strong id="mapModeValue">—</strong></span>
+            <span>GUIDED Target <strong id="mapGuidedValue">—</strong></span>
+          </div>
+        </article>
+
+        <div class="map-detail-grid">
+          <article class="panel compact-panel">
+            <div class="panel-kicker">Mission Progress</div>
+            <div id="missionProgress" class="detail-list"></div>
+          </article>
+          <article class="panel compact-panel">
+            <div class="panel-kicker">GPS &amp; Map Status</div>
+            <div id="reconstructionStatus" class="detail-list"></div>
+          </article>
+          <article class="panel compact-panel waypoint-panel">
+            <div class="panel-kicker">Waypoint List</div>
+            <div class="table-wrap waypoint-wrap"><table><thead><tr><th>Seq</th><th>Status</th><th>Role</th><th>Command</th><th>Lat</th><th>Lon</th></tr></thead><tbody id="waypointRows"></tbody></table></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="state-timeline" class="dashboard-section">
+        <div class="section-heading"><div class="section-index">03</div><div><h2>State Timeline</h2><p>Perubahan state supervisory dan distribusi kondisi sepanjang session.</p></div></div>
+        <div class="two-column-grid">
+          <article class="panel chart-panel"><div class="panel-title-row"><div><div class="panel-kicker">Supervisory State</div><h3>State by Sequence</h3></div></div><div class="chart-viewport"><canvas id="stateChart"></canvas></div></article>
+          <article class="panel chart-panel"><div class="panel-title-row"><div><div class="panel-kicker">Distribution</div><h3>Record Count per State</h3></div></div><div class="chart-viewport"><canvas id="distributionChart"></canvas></div></article>
+        </div>
+        <article class="panel table-panel bounded-table-panel">
+          <div class="panel-title-row"><div><div class="panel-kicker">Transitions</div><h3>State Transition Evidence</h3></div><span id="transitionCount" class="small-stat">0 transitions</span></div>
+          <div class="table-wrap fixed-table-wrap"><table><thead><tr><th>Sequence</th><th>Time (WIB)</th><th>From</th><th>To</th><th>Session</th></tr></thead><tbody id="transitionRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section id="store-forward" class="dashboard-section">
+        <div class="section-heading"><div class="section-index">04</div><div><h2>Store-and-Forward</h2><p>Validasi pertumbuhan buffer, record replay, retry, dan sinkronisasi recovery.</p></div></div>
+        <div class="two-column-grid">
+          <article class="panel chart-panel"><div class="panel-title-row"><div><div class="panel-kicker">Buffer</div><h3>Onboard Buffer by Sequence</h3></div></div><div class="chart-viewport"><canvas id="bufferChart"></canvas></div></article>
+          <article class="panel compact-panel"><div class="panel-title-row"><div><div class="panel-kicker">Recovery Evidence</div><h3>Store-and-Forward Health</h3></div></div><div id="bufferHealth" class="detail-list"></div></article>
+        </div>
+        <article class="panel table-panel bounded-table-panel">
+          <div class="panel-title-row"><div><div class="panel-kicker">Relevant Records</div><h3>Link-loss and Synchronization Records</h3></div><span id="storeForwardCount" class="small-stat">0 records</span></div>
+          <div class="table-wrap fixed-table-wrap"><table><thead><tr><th>Seq</th><th>Time</th><th>State</th><th>Delivery</th><th>ACK</th><th>Buffer</th><th>Retry</th><th>Sync</th></tr></thead><tbody id="storeForwardRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section id="delivery" class="dashboard-section">
+        <div class="section-heading"><div class="section-index">05</div><div><h2>ACK & Data Delivery</h2><p>Penyimpanan unik, duplicate handling, application ACK, dan delivery receipt.</p></div></div>
+        <div class="delivery-grid">
+          <article class="panel compact-panel"><div class="panel-kicker">Delivery Summary</div><div id="deliverySummary" class="detail-list"></div></article>
+          <article class="panel chart-panel"><div class="panel-title-row"><div><div class="panel-kicker">ACK Latency</div><h3>Latency Reported by Onboard</h3></div></div><div class="chart-viewport"><canvas id="ackChart"></canvas></div></article>
+          <article class="panel chart-panel"><div class="panel-title-row"><div><div class="panel-kicker">Operation Trends</div><h3>Speed and Battery</h3></div></div><div class="chart-viewport"><canvas id="operationChart"></canvas></div></article>
+        </div>
+      </section>
+
+      <section id="supporting-monitoring" class="dashboard-section">
+        <div class="section-heading">
+          <div class="section-index">06</div>
+          <div><h2>Supporting Monitoring</h2><p>Data simulasi maupun data sensor ditampilkan setelah tersimpan di database server.</p></div>
+        </div>
+        <div class="supporting-monitor-grid">
+          <article class="panel supporting-monitor-panel" aria-labelledby="waterQualityTitle">
+            <div class="panel-title-row">
+              <div><div class="panel-kicker">Environmental Sensor</div><h3 id="waterQualityTitle">Water Quality Monitoring</h3></div>
+              <span id="waterSensorStatus" class="sensor-status-badge no-data">NO DATA</span>
+            </div>
+            <div id="waterSensorEmpty" class="sensor-empty-state">
+              <strong>NO DATA</strong>
+              <span>Belum ada data kualitas air pada session terpilih.</span>
+            </div>
+            <div class="sensor-metric-grid" aria-label="Parameter kualitas air">
+              <div><span>Water Temperature</span><strong id="waterTemperatureValue">—</strong><small>°C</small></div>
+              <div><span>pH</span><strong id="waterPhValue">—</strong><small>pH</small></div>
+              <div><span>Turbidity</span><strong id="waterTurbidityValue">—</strong><small>NTU</small></div>
+              <div><span>TDS</span><strong id="waterTdsValue">—</strong><small>ppm</small></div>
+              <div><span>Dissolved Oxygen</span><strong id="waterDoValue">—</strong><small>mg/L</small></div>
+              <div><span>Conductivity</span><strong id="waterConductivityValue">—</strong><small>µS/cm</small></div>
+            </div>
+          </article>
+
+          <article class="panel supporting-monitor-panel" aria-labelledby="solarPanelTitle">
+            <div class="panel-title-row">
+              <div><div class="panel-kicker">Energy System</div><h3 id="solarPanelTitle">Solar Panel Monitoring</h3></div>
+              <span id="solarSensorStatus" class="sensor-status-badge no-data">NO DATA</span>
+            </div>
+            <div id="solarSensorEmpty" class="sensor-empty-state solar">
+              <strong>NO DATA</strong>
+              <span>Belum ada data panel surya pada session terpilih.</span>
+            </div>
+            <div class="sensor-metric-grid" aria-label="Parameter panel surya">
+              <div><span>PV Voltage</span><strong id="solarVoltageValue">—</strong><small>V</small></div>
+              <div><span>PV Current</span><strong id="solarCurrentValue">—</strong><small>A</small></div>
+              <div><span>PV Power</span><strong id="solarPowerValue">—</strong><small>W</small></div>
+              <div><span>Battery Voltage</span><strong id="solarBatteryVoltageValue">—</strong><small>V</small></div>
+              <div><span>Charge Current</span><strong id="solarChargeCurrentValue">—</strong><small>A</small></div>
+              <div><span>State of Charge</span><strong id="solarSocValue">—</strong><small>%</small></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="supporting-chart-grid" aria-label="Grafik monitoring pendukung">
+          <article class="panel sensor-chart-panel">
+            <div class="panel-title-row"><div><div class="panel-kicker">Water Quality Trend</div><h3>Temperature &amp; pH</h3></div><span id="waterTempPhStatus" class="sensor-chart-status">NO DATA</span></div>
+            <div class="chart-viewport sensor-chart-viewport"><canvas id="waterTempPhChart" aria-label="Grafik suhu air dan pH"></canvas></div>
+          </article>
+          <article class="panel sensor-chart-panel">
+            <div class="panel-title-row"><div><div class="panel-kicker">Water Quality Trend</div><h3>Turbidity, TDS, DO &amp; Conductivity</h3></div><span id="waterChemistryStatus" class="sensor-chart-status">NO DATA</span></div>
+            <div class="chart-viewport sensor-chart-viewport"><canvas id="waterChemistryChart" aria-label="Grafik parameter kimia kualitas air"></canvas></div>
+          </article>
+          <article class="panel sensor-chart-panel">
+            <div class="panel-title-row"><div><div class="panel-kicker">Solar Generation Trend</div><h3>PV Voltage, Current &amp; Power</h3></div><span id="solarPvStatus" class="sensor-chart-status solar">NO DATA</span></div>
+            <div class="chart-viewport sensor-chart-viewport"><canvas id="solarPvChart" aria-label="Grafik tegangan arus dan daya panel surya"></canvas></div>
+          </article>
+          <article class="panel sensor-chart-panel">
+            <div class="panel-title-row"><div><div class="panel-kicker">Energy Storage Trend</div><h3>Battery &amp; Charging</h3></div><span id="solarBatteryStatus" class="sensor-chart-status solar">NO DATA</span></div>
+            <div class="chart-viewport sensor-chart-viewport"><canvas id="solarBatteryChart" aria-label="Grafik baterai dan pengisian"></canvas></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="evaluation" class="dashboard-section">
+        <div class="section-heading"><div class="section-index">07</div><div><h2>Evaluation Summary</h2><p>Ringkasan bukti pengujian session terpilih untuk mendukung analisis tugas akhir.</p></div></div>
+        <article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Parameter</th><th>Value</th><th>Interpretation</th></tr></thead><tbody id="evaluationRows"></tbody></table></div></article>
+        <article class="panel table-panel event-log-panel bounded-table-panel">
+          <div class="panel-title-row"><div><div class="panel-kicker">Recent Evidence</div><h3>Latest Operational Records</h3></div></div>
+          <div class="table-wrap fixed-table-wrap"><table><thead><tr><th>Seq</th><th>Time</th><th>State</th><th>Internet</th><th>MQTT</th><th>Delivery</th><th>Buffer</th><th>Sync</th></tr></thead><tbody id="eventRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section id="export" class="dashboard-section">
+        <div class="section-heading"><div class="section-index">08</div><div><h2>Export Evidence</h2><p>Unduh seluruh telemetry unik pada vehicle dan session terpilih sebagai CSV.</p></div></div>
+        <article class="panel export-panel">
+          <div><div class="panel-kicker">CSV Evidence</div><h3 id="exportTitle">Pilih session untuk menyiapkan ekspor</h3><p id="exportDescription">File berisi state, link, delivery, buffer, ACK, posisi, mission progress, dan waktu penerimaan server.</p></div>
+          <a id="exportButton" class="primary-button disabled" href="#" download>Download Session CSV</a>
+        </article>
+      </section>
+
+      <footer><span>USV Supervisory System · Institut Teknologi Del</span><span id="footerStatus">Waiting for server data</span></footer>
+    </main>
+  </div>
+
+  <script>window.DASHBOARD_REFRESH_SECONDS = __DASHBOARD_REFRESH_SECONDS__;</script>
+  <script src="/static/js/gps_map.js"></script>
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

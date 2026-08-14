@@ -1,0 +1,17 @@
+[Unit]
+Description=USV Supervisory Server and Dashboard
+After=network-online.target mosquitto.service
+Wants=network-online.target
+Requires=mosquitto.service
+
+[Service]
+Type=simple
+User=usv
+WorkingDirectory=/opt/usv-ground-server
+ExecStart=/opt/usv-ground-server/.venv/bin/python -m server.app
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

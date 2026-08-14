@@ -1,0 +1,5 @@
+# Replace the username to match config/.env and your password file.
+user usv_backend
+topic readwrite usv/+/telemetry
+topic readwrite usv/+/waypoints
+topic readwrite usv/+/ack
