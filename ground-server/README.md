@@ -1,21 +1,18 @@
-# USV Supervisory Ground Server
+# Ground Server USV
 
-Ground server untuk sistem Supervisory USV. Satu codebase digunakan untuk Raspberry Pi/Linux maupun laptop Windows.
+Ground server menerima data dari Raspberry Pi onboard melalui MQTT. Setelah payload lolos validasi, server menyimpannya ke SQLite dan baru kemudian mengirim ACK. Dashboard membaca database yang sama untuk menampilkan kondisi operasi USV.
 
-Fungsi utama:
+Saya menyiapkan bagian ini agar dapat dijalankan pada Raspberry Pi/Linux maupun laptop Windows tanpa mengubah alur data utama.
 
-- menerima telemetry dan mission melalui MQTT;
-- menyimpan record unik ke SQLite berdasarkan `vehicle_id + session_id + seq_id`;
-- mengirim application-level ACK setelah transaksi database selesai;
-- menyimpan mission plan dan active waypoint;
-- menyediakan dashboard monitoring read-only;
-- menangani penerimaan berulang tanpa membuat duplikasi record.
+## Data yang ditangani
 
-## Platform
+Satu record dikenali dari gabungan `vehicle_id`, `session_id`, dan `seq_id`. Jika record yang sama dikirim kembali karena ACK sebelumnya tidak diterima onboard, server mengenalinya sebagai duplikat dan tidak membuat baris telemetry baru.
 
-### Raspberry Pi / Linux
+Selain telemetry, server juga menyimpan informasi misi dan waypoint aktif. Dashboard bersifat read-only: dashboard tidak menentukan state supervisory dan tidak mengubah isi buffer onboard.
 
-Gunakan `docs/INSTALL_RASPBERRY_PI_LINUX.md`, script pada `scripts/linux/`, dan template service pada `systemd/`.
+## Menjalankan pada Raspberry Pi atau Linux
+
+Jalankan dari folder `ground-server`:
 
 ```bash
 python3 -m venv .venv
@@ -25,9 +22,11 @@ cp config/.env.example config/.env
 python -m server.app
 ```
 
-### Windows
+Panduan pemasangan broker, service, dan pemeriksaan sistem tersedia pada [INSTALL_RASPBERRY_PI_LINUX.md](docs/INSTALL_RASPBERRY_PI_LINUX.md).
 
-Panduan lengkap tersedia di `docs/INSTALL_LAPTOP_WINDOWS.md`.
+## Menjalankan pada Windows
+
+Buka PowerShell dari folder `ground-server`:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -35,7 +34,9 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\windows\run_all.ps1
 ```
 
-Dashboard lokal:
+Panduan lengkapnya tersedia pada [INSTALL_LAPTOP_WINDOWS.md](docs/INSTALL_LAPTOP_WINDOWS.md).
+
+Setelah backend berjalan, dashboard lokal dapat dibuka melalui:
 
 ```text
 http://127.0.0.1:5000
@@ -43,30 +44,24 @@ http://127.0.0.1:5000
 
 ## Konfigurasi
 
-Jangan commit `config/.env`. Salin file contoh lalu isi kredensial dan alamat jaringan milik deployment masing-masing.
+Salin `config/.env.example` menjadi `config/.env`, kemudian isi alamat broker dan kredensial yang sama dengan konfigurasi onboard. Untuk Windows juga tersedia `config/.env.windows.example`.
 
-```bash
-cp config/.env.example config/.env
-```
+Jangan commit file `.env`. Repository hanya menyediakan contoh struktur konfigurasinya.
 
-Untuk Windows tersedia juga `config/.env.windows.example`.
+## Database dan pengujian
 
-## Database
-
-Database runtime berada di:
+Database runtime disimpan pada:
 
 ```text
 data/database/usv_server.sqlite3
 ```
 
-Database dan backup runtime sengaja tidak disertakan dalam repository.
+Database operasi dan file backup tidak dimasukkan ke repository.
 
-## Pengujian
+Untuk menjalankan test:
 
 ```bash
 python -m pytest -q tests
 ```
 
-## Catatan
-
-Jalankan satu backend server aktif untuk deployment yang sama agar alur ACK dan penyimpanan tetap mudah ditelusuri.
+Dalam satu deployment, gunakan satu backend aktif agar urutan penyimpanan dan ACK mudah diperiksa.
