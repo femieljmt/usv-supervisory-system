@@ -1,16 +1,16 @@
-# USV Supervisory Protocol Contract
+# Kontrak Protokol USV Supervisory
 
-Protocol name: USV Supervisory Protocol  
-Protocol version: 1.0.0  
-Implementation status: Final contract for initial implementation
+**Nama protokol:** USV Supervisory Protocol  
+**Versi:** 1.0.0  
+**Status:** kontrak implementasi awal
 
-Dokumen ini menjadi acuan bersama untuk program onboard Raspberry Pi USV,
-MQTT backend Raspberry Pi Lab, persistent buffer, database SQLite, mekanisme
-ACK, dan dashboard.
+Dokumen ini mencatat aturan pertukaran data yang saya gunakan antara Raspberry Pi onboard dan ground server. Isinya menjadi rujukan yang sama untuk payload MQTT, persistent outbox, penyimpanan SQLite, ACK aplikasi, state supervisory, dan dashboard.
+
+Perubahan pada field, topic, identitas record, atau aturan ACK harus diterapkan pada kedua sisi. Karena itu, salinan dokumen di folder `onboard` dan `ground-server` harus tetap identik.
 
 ---
 
-## 1. System Roles
+## 1. Pembagian Peran
 
 ### Raspberry Pi USV
 
@@ -26,9 +26,9 @@ Raspberry Pi USV bertanggung jawab untuk:
 - menyinkronkan data tertunda;
 - menentukan supervisor state.
 
-### Raspberry Pi Lab
+### Ground server
 
-Raspberry Pi Lab bertanggung jawab untuk:
+Ground server bertanggung jawab untuk:
 
 - menjalankan Mosquitto MQTT broker;
 - menerima payload telemetry;
@@ -50,7 +50,7 @@ Dashboard tidak:
 
 ---
 
-## 2. Record Identity
+## 2. Identitas Record
 
 ### vehicle_id
 
@@ -96,7 +96,7 @@ Database dan ACK tidak boleh menggunakan seq_id sebagai identitas tunggal.
 
 ---
 
-## 3. Supervisor States
+## 3. State Supervisory
 
 Sistem hanya memiliki empat supervisor state:
 
@@ -166,7 +166,7 @@ Sistem tidak boleh langsung menetapkan NORMAL tanpa evaluasi tersebut.
 
 ---
 
-## 4. Communication Status
+## 4. Status Komunikasi
 
 Status komunikasi berikut bukan supervisor state.
 
@@ -232,7 +232,7 @@ REPLAY digunakan ketika record dikirim kembali dari persistent buffer.
 
 ---
 
-## 5. MQTT Topics
+## 5. Topic MQTT
 
 Topic telemetry:
 
@@ -276,7 +276,7 @@ Keberhasilan MQTT publish atau QoS MQTT tidak menggantikan ACK aplikasi.
 
 ---
 
-## 6. Telemetry Payload
+## 6. Payload Telemetry
 
 Payload telemetry menggunakan JSON.
 
@@ -363,9 +363,9 @@ tidak diterima.
 
 ---
 
-## 7. ACK Payload
+## 7. Payload ACK
 
-ACK diterbitkan oleh backend Raspberry Pi Lab setelah record berhasil disimpan
+ACK diterbitkan oleh backend ground server setelah record berhasil disimpan
 dan transaksi SQLite berhasil di-commit.
 
 Format ACK:
@@ -394,7 +394,7 @@ buffer.
 
 ---
 
-## 8. Persistent Buffer Rules
+## 8. Aturan Persistent Outbox
 
 Persistent buffer berada pada Raspberry Pi USV.
 
@@ -424,7 +424,7 @@ Ketentuan:
 
 ---
 
-## 9. Backend Storage Rules
+## 9. Aturan Penyimpanan Backend
 
 Backend melakukan urutan berikut:
 
@@ -447,9 +447,9 @@ diterima onboard.
 
 ---
 
-## 10. Database Uniqueness
+## 10. Keunikan Record pada Database
 
-Database Raspberry Pi Lab menggunakan constraint:
+Database ground server menggunakan constraint:
 
     UNIQUE(vehicle_id, session_id, seq_id)
 
@@ -468,7 +468,7 @@ Backend tidak boleh menimpa supervisor_state yang ditentukan onboard.
 
 ---
 
-## 11. State Determination Priority
+## 11. Prioritas Penentuan State
 
 Prioritas penentuan state:
 
@@ -482,7 +482,7 @@ persistent buffer, bukan sebagai supervisor state tambahan.
 
 ---
 
-## 12. Timestamp Standard
+## 12. Standar Timestamp
 
 Semua timestamp menggunakan UTC dan format ISO 8601.
 
@@ -496,7 +496,7 @@ Timestamp stored_at menunjukkan waktu backend berhasil menyimpan record.
 
 ---
 
-## 13. Final Data Ownership
+## 13. Kepemilikan Data
 
 Raspberry Pi USV menentukan:
 
@@ -509,7 +509,7 @@ Raspberry Pi USV menentukan:
 - jumlah persistent buffer;
 - status sinkronisasi.
 
-Raspberry Pi Lab menentukan:
+Ground server menentukan:
 
 - backend_received_at;
 - backend_store_status;
@@ -519,4 +519,4 @@ Raspberry Pi Lab menentukan:
 
 Dashboard hanya membaca dan menampilkan data yang tersedia.
 
-Dokumen ini harus identik pada Raspberry Pi USV dan Raspberry Pi Lab.
+Dokumen ini harus identik pada sisi onboard dan ground server.
