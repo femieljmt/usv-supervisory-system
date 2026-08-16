@@ -1,33 +1,27 @@
-# Mengalihkan MQTT Onboard ke Laptop
+# Mengalihkan Broker Onboard ke Laptop
 
-1. Pastikan laptop server aktif.
-2. Ambil IP Tailscale laptop dengan `tailscale ip -4`.
-3. Backup konfigurasi onboard:
+Catatan ini dipakai saat ground server dipindahkan sementara dari Raspberry Pi Lab ke laptop Windows.
+
+Pastikan server laptop sudah aktif, lalu cari alamat Tailscale laptop dengan `tailscale ip -4`. Pada Raspberry Pi onboard, simpan konfigurasi lama sebelum melakukan perubahan:
 
 ```bash
 cd ~/usv_supervisory_final
 cp config/.env config/.env.before_laptop_server
-```
-
-4. Edit:
-
-```bash
 nano config/.env
 ```
 
-5. Ubah hanya:
+Ubah `MQTT_HOST` menjadi alamat Tailscale laptop:
 
 ```ini
 MQTT_HOST=<IP_TAILSCALE_LAPTOP>
 ```
 
-6. Pastikan kredensial MQTT sama dengan yang dibuat saat setup laptop.
-7. Uji port 1883.
-8. Jalankan onboard satu kali.
-9. Pastikan ACK diterima dan buffer kembali nol.
+Kredensial MQTT pada laptop dan onboard harus sama. Setelah menyimpan file, uji port 1883, jalankan program onboard, lalu periksa apakah ACK diterima dan buffer kembali ke nol.
 
-Untuk kembali ke Raspberry Pi Lab:
+Untuk kembali memakai Raspberry Pi Lab:
 
 ```bash
 cp config/.env.before_laptop_server config/.env
 ```
+
+Jalankan hanya satu ground server untuk deployment yang sama agar data dan ACK tidak menuju dua backend berbeda.
