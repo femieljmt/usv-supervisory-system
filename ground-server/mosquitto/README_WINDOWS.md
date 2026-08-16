@@ -1,16 +1,13 @@
-# Mosquitto Windows
+# Mosquitto pada Windows
 
-`setup_windows_server.ps1` menghasilkan:
+Script `setup_windows_server.ps1` menyiapkan `mosquitto-windows.conf`, file password, ACL, serta folder persistence dan log.
 
-- `mosquitto-windows.conf`;
-- `passwd`;
-- `acl`;
-- folder persistence dan log.
-
-Broker dijalankan manual menggunakan:
+Broker dijalankan dengan:
 
 ```powershell
 .\scripts\windows\run_mosquitto.ps1
 ```
 
-Service Mosquitto bawaan dihentikan dan dibuat `Manual` oleh setup apabila PowerShell dijalankan sebagai Administrator. Hal ini mencegah broker bawaan memakai konfigurasi yang berbeda pada port 1883.
+Jika setup dijalankan sebagai Administrator, service Mosquitto bawaan dihentikan dan startup type-nya diubah menjadi `Manual`. Tujuannya agar tidak ada broker kedua yang memakai konfigurasi berbeda pada port 1883.
+
+Kredensial yang dibuat saat setup harus sama dengan nilai MQTT pada `config/.env` ground server dan konfigurasi onboard.
