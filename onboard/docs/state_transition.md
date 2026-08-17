@@ -1,47 +1,33 @@
-# USV Supervisory State Transition
+# Aturan Transisi State Supervisory
 
-Sistem hanya menggunakan empat supervisor state:
+Dokumen ini mencatat aturan yang saya gunakan untuk menentukan kondisi supervisory pada program onboard. State dibuat sesedikit mungkin agar kondisi navigasi, jaringan, dan pengiriman data tidak tercampur.
 
-- NORMAL
-- GCS_LOST
-- RECOVERY
-- PIXHAWK_LOST
+## Empat state yang digunakan
 
-## Prioritas Penentuan
+- `NORMAL`: MAVLink dan internet tersedia, serta sinkronisasi tidak aktif.
+- `GCS_LOST`: MAVLink tersedia, tetapi internet onboard sudah dinyatakan terputus.
+- `RECOVERY`: MAVLink dan internet tersedia, serta data tertunda sedang disinkronkan.
+- `PIXHAWK_LOST`: heartbeat atau data MAVLink tidak diterima dalam batas timeout.
 
-1. MAVLink tidak tersedia menghasilkan PIXHAWK_LOST.
-2. MAVLink tersedia dan internet onboard tidak tersedia menghasilkan GCS_LOST.
-3. MAVLink dan internet tersedia serta sinkronisasi aktif menghasilkan RECOVERY.
-4. MAVLink dan internet tersedia tanpa sinkronisasi aktif menghasilkan NORMAL.
+Prioritas pemeriksaannya adalah Pixhawk, internet, proses sinkronisasi, lalu kondisi normal. Karena itu, kehilangan MAVLink selalu menghasilkan `PIXHAWK_LOST`, terlepas dari status komponen lain.
 
-## Status Internet UNKNOWN
+## Saat status internet belum pasti
 
-Status UNKNOWN tidak langsung menghasilkan GCS_LOST.
+Nilai `UNKNOWN` tidak langsung mengubah state menjadi `GCS_LOST`. Program menunggu jumlah kegagalan probe yang sudah ditentukan agar gangguan singkat tidak dianggap sebagai kehilangan komunikasi.
 
-GCS_LOST hanya digunakan setelah kegagalan probe internet mencapai jumlah
-konfirmasi yang ditentukan.
+## Gangguan MQTT atau server
 
-## Gangguan MQTT dan Server
+Broker terputus, backend berhenti, database gagal, atau ACK timeout tidak otomatis berarti `GCS_LOST`. Selama internet onboard masih tersedia, masalah tersebut dicatat melalui status MQTT, ACK, retry, dan persistent outbox.
 
-Gangguan berikut tidak langsung menghasilkan GCS_LOST:
+Jika tidak ada sinkronisasi yang sedang berjalan, state tetap `NORMAL`. Record yang belum mendapat ACK tetap berada di outbox untuk dicoba kembali.
 
-- MQTT disconnected;
-- Mosquitto tidak tersedia;
-- backend tidak tersedia;
-- Raspberry Pi Lab tidak tersedia;
-- database gagal;
-- ACK timeout.
+## Pemulihan setelah PIXHAWK_LOST
 
-Ketika internet onboard masih tersedia, kondisi tersebut dicatat melalui status
-MQTT, ACK, retry, dan persistent outbox. Supervisor state tetap NORMAL jika
-sinkronisasi tidak sedang aktif.
+Ketika MAVLink kembali tersedia, program tidak langsung menetapkan `NORMAL`. Kondisi berikutnya ditentukan kembali:
 
-## Pemulihan PIXHAWK_LOST
+- internet belum tersedia: `GCS_LOST`;
+- internet tersedia dan data tertunda mulai dikirim: `RECOVERY`;
+- internet tersedia tetapi jalur pengiriman belum siap: `NORMAL`, dengan masalah pengiriman dicatat pada status komunikasi;
+- internet tersedia dan tidak ada data tertunda: `NORMAL`.
 
-Setelah MAVLink kembali tersedia:
-
-- internet tidak tersedia menghasilkan GCS_LOST;
-- internet tersedia dan sinkronisasi data tertunda dapat dimulai menghasilkan
-  RECOVERY;
-- internet tersedia tetapi jalur pengiriman belum siap menghasilkan NORMAL;
-- internet tersedia dan tidak ada data tertunda menghasilkan NORMAL.
+Aturan payload dan status komunikasi lengkap tersedia pada [kontrak protokol](protocol_contract.md).

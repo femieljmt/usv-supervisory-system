@@ -1,82 +1,72 @@
-# Instalasi USV Server pada Laptop Windows
+# Memasang Ground Server pada Laptop Windows
 
-## 1. Persiapan
+Panduan ini saya gunakan ketika laptop Windows berperan sebagai ground server pengganti Raspberry Pi Lab. Laptop menjalankan broker Mosquitto, backend, database SQLite, dan dashboard.
 
-Pasang:
+## Sebelum mulai
 
-- Python 3.11 atau lebih baru;
-- Eclipse Mosquitto Windows;
-- Tailscale Windows.
+Siapkan Python 3.11 atau versi lebih baru, Eclipse Mosquitto untuk Windows, dan Tailscale. Laptop dan Raspberry Pi onboard harus terhubung ke tailnet yang sama.
 
-Pastikan laptop dan Raspberry Pi onboard masuk ke tailnet yang sama.
-
-## 2. Ekstrak paket
-
-Gunakan lokasi tanpa karakter aneh, misalnya:
+Letakkan proyek pada path yang sederhana, misalnya:
 
 ```text
-C:\USV\usv_server_final
+C:\USV\usv_server
 ```
 
-## 3. Setup otomatis
+## Menjalankan setup
 
-Buka PowerShell sebagai Administrator:
+Buka PowerShell sebagai Administrator, kemudian masuk ke folder `ground-server`:
 
 ```powershell
-cd C:\USV\usv_server_final
+cd C:\USV\usv_server
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\windows\setup_windows_server.ps1
 ```
 
-Username dan password MQTT yang dimasukkan harus sama dengan konfigurasi onboard.
+Masukkan username dan password MQTT yang sama dengan konfigurasi onboard. Hak Administrator diperlukan untuk pengaturan firewall dan service Mosquitto.
 
-## 4. Nonaktifkan sleep saat charger terhubung
+Agar laptop tidak masuk ke mode sleep saat pengujian:
 
 ```powershell
 .\scripts\windows\disable_sleep_on_ac.ps1
 ```
 
-## 5. Jalankan
+## Menjalankan server
 
 ```powershell
 .\scripts\windows\run_all.ps1
 ```
 
-Dua terminal akan digunakan:
-
-- terminal broker Mosquitto;
-- terminal backend dan dashboard.
-
-Dashboard:
+Script membuka terminal untuk broker Mosquitto serta terminal untuk backend dan dashboard. Dashboard dapat dibuka di:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-## 6. Arahkan onboard ke laptop
+## Mengarahkan onboard ke laptop
 
-Pada laptop:
+Cari IP Tailscale laptop:
 
 ```powershell
 tailscale ip -4
 ```
 
-Di Raspberry Pi onboard:
+Pada Raspberry Pi onboard, buat salinan konfigurasi lalu buka file `.env`:
 
 ```bash
 cd ~/usv_supervisory_final
+cp config/.env config/.env.before_laptop_server
 nano config/.env
 ```
 
-Ubah:
+Ubah hanya alamat broker:
 
 ```ini
 MQTT_HOST=<IP_TAILSCALE_LAPTOP>
 ```
 
-Username, password, topic, QoS, dan vehicle ID tidak diubah.
+Biarkan username, password, topic, QoS, dan vehicle ID sesuai konfigurasi deployment.
 
-## 7. Uji port dari onboard
+Uji koneksi dari onboard:
 
 ```bash
 ping -c 3 <IP_TAILSCALE_LAPTOP>
@@ -86,7 +76,7 @@ timeout 3 bash -c '</dev/tcp/<IP_TAILSCALE_LAPTOP>/1883' \
   || echo 'MQTT PORT FAILED'
 ```
 
-## 8. Validasi
+## Pemeriksaan setelah server berjalan
 
 Pada laptop:
 
@@ -94,35 +84,16 @@ Pada laptop:
 .\scripts\windows\check_server.ps1
 ```
 
-Pada dashboard:
+Saat sistem normal, dashboard seharusnya menunjukkan koneksi Pixhawk, internet, dan MQTT aktif. Buffer akan kembali ke nol setelah seluruh record memperoleh ACK.
+
+Urutan menyalakan sistem yang saya gunakan:
 
 ```text
-LIVE
-Pixhawk = OK
-Internet = UP
-MQTT = UP
-Buffer = 0
-Sync = IDLE
+Mosquitto di laptop
+→ backend ground server
+→ MAVProxy di Raspberry Pi USV
+→ program onboard
+→ periksa dashboard
 ```
 
-## 9. Urutan operasi
-
-```text
-Laptop: broker Mosquitto
-→ Laptop: server.app
-→ Pi USV: MAVProxy
-→ Pi USV: onboard.app
-→ dashboard LIVE
-```
-
-## 10. Urutan berhenti
-
-```text
-Tunggu buffer 0
-→ hentikan onboard.app
-→ hentikan MAVProxy
-→ hentikan server.app
-→ hentikan Mosquitto
-```
-
-Jangan menjalankan server Raspberry Pi Lab bersamaan dengan laptop server.
+Sebelum mematikan sistem, tunggu sampai buffer nol. Setelah itu hentikan program onboard, MAVProxy, backend, lalu Mosquitto. Jangan menjalankan ground server laptop dan Raspberry Pi Lab secara bersamaan untuk deployment yang sama.
